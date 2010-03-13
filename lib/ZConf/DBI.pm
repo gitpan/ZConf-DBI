@@ -10,11 +10,11 @@ ZConf::DBI - Stores DBI connection information in ZConf.
 
 =head1 VERSION
 
-Version 0.0.0
+Version 0.0.1
 
 =cut
 
-our $VERSION = '0.0.0';
+our $VERSION = '0.0.1';
 
 =head1 SYNOPSIS
 
@@ -348,7 +348,7 @@ sub connect{
 	}
 
 	#fetches the user for the data source
-	my $pass=$self->getDSuser($dsName);
+	my $pass=$self->getDSpass($dsName);
 	if ($self->{error}) {
 		warn($self->{module}.' '.$function.': getDSuser errored');
 		return undef;
