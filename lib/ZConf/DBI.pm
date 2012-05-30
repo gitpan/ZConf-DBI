@@ -3,6 +3,7 @@ package ZConf::DBI;
 use warnings;
 use strict;
 use ZConf;
+use base 'Error::Helper';
 
 =head1 NAME
 
@@ -10,11 +11,11 @@ ZConf::DBI - Stores DBI connection information in ZConf.
 
 =head1 VERSION
 
-Version 0.0.1
+Version 0.1.0
 
 =cut
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.1.0';
 
 =head1 SYNOPSIS
 
@@ -49,27 +50,26 @@ sub new{
 	if(defined($_[1])){
 		%args= %{$_[1]};
 	}
-	my $function='new';
 
-	my $self={error=>undef,
-			  perror=>undef,
-			  errorString=>undef,
-			  zconfconfig=>'DBI',
-			  module=>'ZConf-DBI',
-			  };
+	my $self={
+		error=>undef,
+		perror=>undef,
+		errorString=>undef,
+		zconfconfig=>'DBI',
+	};
 	bless $self;
 	
 	#get the ZConf object
 	if (!defined($args{zconf})) {
 		#creates the ZConf object
 		$self->{zconf}=ZConf->new();
-		if(defined($self->{zconf}->{error})){
+		if(defined($self->{zconf}->error)){
 			$self->{error}=1;
 			$self->{perror}=1;
 			$self->{errorString}="Could not initiate ZConf. It failed with '"
-			                      .$self->{zconf}->{error}."', '".
-			                      $self->{zconf}->{errorString}."'";
-			warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+			                      .$self->{zconf}->error."', '".
+			                      $self->{zconf}->errorString."'";
+			$self->warn;
 			return $self;
 		}
 	}else {
@@ -78,13 +78,13 @@ sub new{
 
 	#check if the config exists
 	my $returned = $self->{zconf}->configExists($self->{zconfconfig});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{perror}=1;
 		$self->{errorString}="Checking if '".$self->{zconfconfig}."' exists failed. error='".
-		                     $self->{zconf}->{error}."', errorString='".
-		                     $self->{zconf}->{errorString}."'";
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error."', errorString='".
+		                     $self->{zconf}->errorString."'";
+		$self->warn;
 		return $self;
 	}
 
@@ -92,34 +92,34 @@ sub new{
 	if (!$returned) {
 		#create the config
 		$self->{zconf}->createConfig($self->{zconfconfig});
-		if ($self->{zconf}->{error}) {
+		if ($self->{zconf}->error) {
 			$self->{error}=1;
 			$self->{perror}=1;
 			$self->{errorString}="Checking if '".$self."' exists failed. error='".
-		                         $self->{zconf}->{error}."', errorString='".
-		                         $self->{zconf}->{errorString}."'";
-			warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                         $self->{zconf}->error."', errorString='".
+		                         $self->{zconf}->errorString."'";
+			$self->warn;
 			return $self;
 		}
 
 		#init it
 		$self->init;
-		if ($self->{zconf}->{error}) {
+		if ($self->{zconf}->error) {
 			$self->{perror}=1;
 			$self->{errorString}='Init failed.';
-			warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+			$self->warn;
 			return $self;
 		}
 	}else {
 		#if we have a set, make sure we also have a set that will be loaded
 		$returned=$self->{zconf}->defaultSetExists($self->{zconfconfig});
-		if ($self->{zconf}->{error}) {
+		if ($self->{zconf}->error) {
 			$self->{error}=1;
 			$self->{perror}=1;
 			$self->{errorString}="Checking if '".$self."' exists failed. error='".
-		                         $self->{zconf}->{error}."', errorString='".
-		                         $self->{zconf}->{errorString}."'";
-			warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                         $self->{zconf}->error."', errorString='".
+		                         $self->{zconf}->errorString."'";
+			$self->warn;
 			return $self;
 		}
 
@@ -127,10 +127,10 @@ sub new{
 		if (!$returned) {
 			#init it
 			$self->init;
-			if ($self->{zconf}->{error}) {
+			if ($self->{zconf}->error) {
 				$self->{perror}=1;
 				$self->{errorString}='Init failed.';
-				warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+				$self->warn;
 				return $self;
 			}
 		}
@@ -139,13 +139,13 @@ sub new{
 
 	#read the config
 	$self->{zconf}->read({config=>$self->{zconfconfig}});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{perror}=1;
 		$self->{errorString}="Checking if the default set for '".$self->{zconfconfig}."' exists failed. error='".
-		                     $self->{zconf}->{error}."', errorString='".
-		                     $self->{zconf}->{errorString}."'";
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error."', errorString='".
+		                     $self->{zconf}->errorString."'";
+		$self->warn;
 		return $self
 	}
 
@@ -196,38 +196,36 @@ sub addDS{
 	my $self=$_[0];
 	my %args;
 	%args=%{$_[1]};
-	my $function='addDataSource';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous error
+	if (!$self->errorblank) {
 		return undef;
 	}	
 
 	if (!defined( $args{name} )) {
 		$self->{error}=2;
 		$self->{errorString}='No name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	if (!defined( $args{ds} )) {
 		$self->{error}=3;
 		$self->{errorString}='No data source specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	#make sure it does not exist already
 	my $dsExists=$self->dataSourceExists( $args{name} );
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': dataSourceExists errored');
+	if ($self->error) {
+		$self->warnString('dataSourceExists errored');
 		return undef;
 	}
 	if ($dsExists) {
 		$self->{error}=4;
 		$self->{errorString}='The data source "'.$args{name}.'" already exists';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
@@ -235,18 +233,18 @@ sub addDS{
 	if ($args{name} =~ /\//) {
 		$self->{error}=5;
 		$self->{errorString}='The data source name, "'.$args{name}.'", contains a "/"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	#adds the datasource
 	$self->{zconf}->setVar('DBI', 'datasources/'.$args{name}.'/ds', $args{ds});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf setVar failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
@@ -274,12 +272,12 @@ sub addDS{
 
 	#saves it
 	$self->{zconf}->writeSetFromLoadedConfig({config=>$self->{zconfconfig}});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf writeSetFromHash failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -304,11 +302,9 @@ Only one arguement is required and it is the name of the data source.
 sub connect{
 	my $self=$_[0];
 	my $dsName=$_[1];
-	my $function='connect';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -316,48 +312,48 @@ sub connect{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#make sure it does not exist already
 	my $dsExists=$self->dataSourceExists( $dsName );
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': dataSourceExists errored');
+	if ($self->error) {
+		$self->warnString('dataSourceExists errored');
 		return undef;
 	}
 	if (!$dsExists) {
 		$self->{error}=7;
 		$self->{errorString}='The data source "'.$dsName.'" does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	#fetches the data source
 	my $ds=$self->getDS($dsName);
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': getDS errored');
+	if ($self->error) {
+		$self->warnString('getDS errored');
 		return undef;
 	}
 
 	#fetches the user for the data source
 	my $user=$self->getDSuser($dsName);
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': getDSuser errored');
+	if ($self->error) {
+		$self->warnString('getDSuser errored');
 		return undef;
 	}
 
 	#fetches the user for the data source
 	my $pass=$self->getDSpass($dsName);
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': getDSuser errored');
+	if ($self->error) {
+		$self->warnString('getDSuser errored');
 		return undef;
 	}
 
 	#fetches the user for the data source
 	my %attrs=$self->getDSattrs($dsName);
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': getDSattrs errored');
+	if ($self->error) {
+		$self->warnString('getDSattrs errored');
 		return undef;
 	}
 
@@ -384,11 +380,9 @@ The returned value is either a Perl boolean value.
 sub dataSourceExists{
 	my $self=$_[0];
 	my $datasource=$_[1];
-	my $function='dataSourceExists';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -396,14 +390,14 @@ sub dataSourceExists{
 	if (!defined( $datasource )) {
 		$self->{error}=2;
 		$self->{errorString}='No name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	#gets a list of data sources
 	my @datasources=$self->listDSs;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': listDSs errored');
+	if ($self->error) {
+		$self->warnString('listDSs errored');
 		return undef;
 	}
 
@@ -429,11 +423,9 @@ This removes a data source.
 sub delDS{
 	my $self=$_[0];
 	my $dsName=$_[1];
-	my $function='delDS';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -441,41 +433,41 @@ sub delDS{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#make sure it does not exist already
 	my $dsExists=$self->dataSourceExists( $dsName );
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': dataSourceExists errored');
+	if ($self->error) {
+		$self->warnString('dataSourceExists errored');
 		return undef;
 	}
 	if (!$dsExists) {
 		$self->{error}=7;
 		$self->{errorString}='The data source "'.$dsName.'" does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	my @deleted=$self->{zconf}->regexVarDel( $self->{zconfconfig}, '^datasources\/'.quotemeta($dsName).'\/' );
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf regexVarDel failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
 	#saves it
 	$self->{zconf}->writeSetFromLoadedConfig({config=>$self->{zconfconfig}});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf writeSetFromHash failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -496,59 +488,24 @@ This removes the specified ZConf set.
 sub delSet{
 	my $self=$_[0];
 	my $set=$_[1];
-	my $function='delSet';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
+		$self->warn;
 		return undef;
 	}
 
 	$self->{zconf}->delSet($self->{zconfconfg}, $set);
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf getAvailableSets failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
-
 	return 1;
-}
-
-=head2 error
-
-Returns the current error code and true if there is an error.
-
-If there is no error, undef is returned.
-
-    my $error=$foo->error;
-    if($error){
-        print 'error code: '.$error."\n";
-    }
-
-=cut
-
-sub error{
-    return $_[0]->{error};
-}
-
-=head2 errorString
-
-Returns the error string if there is one. If there is not,
-it will return ''.
-
-    my $error=$foo->error;
-    if($error){
-        print 'error code:'.$error.': '.$foo->errorString."\n";
-    }
-
-=cut
-
-sub errorString{
-    return $_[0]->{errorString};
 }
 
 =head2 getDS
@@ -567,11 +524,9 @@ Only one arguement is required and is the name of the data source.
 sub getDS{
 	my $self=$_[0];
 	my $dsName=$_[1];
-	my $function='getDS';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous error
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -579,18 +534,18 @@ sub getDS{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#fetches them
 	my %vars=$self->{zconf}->regexVarGet( $self->{zconfconfig}, '^datasources/'.$dsName.'/ds$' );
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf regexVarGet failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
@@ -598,7 +553,7 @@ sub getDS{
 	if (!defined( $vars{ 'datasources/'.$dsName.'/ds' } )) {
 		$self->{error}=6;
 		$self->{errorString}='The data source, "'.$dsName.'", does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
@@ -623,11 +578,9 @@ Only one arguement is required and is the name of the data source.
 sub getDSattrs{
 	my $self=$_[0];
 	my $dsName=$_[1];
-	my $function='getDSpass';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank){
 		return undef;
 	}
 
@@ -635,18 +588,18 @@ sub getDSattrs{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#fetches them
 	my %vars=$self->{zconf}->regexVarGet( $self->{zconfconfig}, '^datasources/'.$dsName.'/' );
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf regexVarGet failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
@@ -654,7 +607,7 @@ sub getDSattrs{
 	if (!defined( $vars{ 'datasources/'.$dsName.'/ds' } )) {
 		$self->{error}=6;
 		$self->{errorString}='The data source, "'.$dsName.'", does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
@@ -694,11 +647,9 @@ Only one arguement is required and is the name of the data source.
 sub getDSpass{
 	my $self=$_[0];
 	my $dsName=$_[1];
-	my $function='getDSpass';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -706,18 +657,18 @@ sub getDSpass{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#fetches them
 	my %vars=$self->{zconf}->regexVarGet( $self->{zconfconfig}, '^datasources/'.$dsName.'/' );
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf regexVarGet failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
@@ -725,7 +676,7 @@ sub getDSpass{
 	if (!defined( $vars{ 'datasources/'.$dsName.'/ds' } )) {
 		$self->{error}=6;
 		$self->{errorString}='The data source, "'.$dsName.'", does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
@@ -755,11 +706,9 @@ Only one arguement is required and is the name of the data source.
 sub getDSuser{
 	my $self=$_[0];
 	my $dsName=$_[1];
-	my $function='getDSuser';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous error
+	if ($self->errorblank) {
 		return undef;
 	}
 
@@ -767,18 +716,18 @@ sub getDSuser{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#fetches them
 	my %vars=$self->{zconf}->regexVarGet( $self->{zconfconfig}, '^datasources/'.$dsName.'/' );
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf regexVarGet failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
@@ -786,7 +735,7 @@ sub getDSuser{
 	if (!defined( $vars{ 'datasources/'.$dsName.'/ds' } )) {
 		$self->{error}=6;
 		$self->{errorString}='The data source, "'.$dsName.'", does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
@@ -816,11 +765,9 @@ The set is not automatically read.
 sub init{
 	my $self=$_[0];
 	my $set=$_[1];
-	my $function='init';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -828,12 +775,12 @@ sub init{
 	my %hash;
 
 	$self->{zconf}->writeSetFromHash({config=>$self->{zconfconfig}, set=>$set},\%hash);
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf writeSetFromHash failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -860,22 +807,20 @@ The returned value is a array of available data sources.
 
 sub listDSs{
 	my $self=$_[0];
-	my $function='listDSs';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
 	#searches for datasources
 	my @matched=$self->{zconf}->regexVarSearch($self->{zconfconfig}, '^datasources\/');
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf regexVarSearch failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -908,21 +853,19 @@ This lists the available sets for the ZConf config.
 
 sub listSets{
 	my $self=$_[0];
-	my $function='listSets';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
 	my @sets=$self->{zconf}->getAvailableSets($self->{zconfconfig});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf getAvailableSets failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -945,22 +888,20 @@ If no set is specified, the default is used.
 sub readSet{
 	my $self=$_[0];
 	my $set=$_[1];
-	my $function='readSet';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
 	#read the config
 	$self->{zconf}->read({config=>$self->{zconfconfig}, set=>$set});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='Failed to read the set. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -985,11 +926,9 @@ sub setDS{
 	my $self=$_[0];
 	my $dsName=$_[1];
 	my $ds=$_[2];
-	my $function='getDS';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -997,7 +936,7 @@ sub setDS{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
@@ -1005,43 +944,43 @@ sub setDS{
 	if (!defined( $ds )) {
 		$self->{error}=3;
 		$self->{errorString}='No data source specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#make sure it does not exist already
 	my $dsExists=$self->dataSourceExists( $dsName );
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': dataSourceExists errored');
+	if ($self->error) {
+		$self->warnString('dataSourceExists errored');
 		return undef;
 	}
 	if (!$dsExists) {
 		$self->{error}=7;
 		$self->{errorString}='The data source "'.$dsName.'" does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	#set the variable
 	my $var='datasources/'.$dsName.'/ds';
 	$self->{zconf}->setVar($self->{zconfconfig}, $var, $ds);
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf setVar failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
 	#saves it
 	$self->{zconf}->writeSetFromLoadedConfig({config=>$self->{zconfconfig}});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf writeSetFromHash failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -1069,11 +1008,9 @@ sub setDSattr{
 	my $dsName=$_[1];
 	my $attr=$_[2];
 	my $value=$_[3];
-	my $function='getDSattr';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -1081,7 +1018,7 @@ sub setDSattr{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
@@ -1089,20 +1026,20 @@ sub setDSattr{
 	if (!defined( $attr )) {
 		$self->{error}=8;
 		$self->{errorString}='No attribute specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#make sure it does not exist already
 	my $dsExists=$self->dataSourceExists( $dsName );
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': dataSourceExists errored');
+	if ($self->error) {
+		$self->warnString('dataSourceExists errored');
 		return undef;
 	}
 	if (!$dsExists) {
 		$self->{error}=7;
 		$self->{errorString}='The data source "'.$dsName.'" does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
@@ -1110,12 +1047,12 @@ sub setDSattr{
 	if (!defined( $value )) {
 		my $rm='^datasources/'.$dsName.'/attr/'.$attr.'$';
 		$self->{zconf}->regexVarDel($self->{zconfconfig}, $rm);
-		if ($self->{zconf}->{error}) {
+		if ($self->{zconf}->error) {
 			$self->{error}=1;
 			$self->{errorString}='ZConf setVar failed. error="'.
-		                         $self->{zconf}->{error}.'", errorString="'.
-		                         $self->{zconf}->{errorString}.'"';
-			warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                         $self->{zconf}->error.'", errorString="'.
+		                         $self->{zconf}->errorString.'"';
+			$self->warn;
 			return undef;
 		}
 
@@ -1125,23 +1062,23 @@ sub setDSattr{
 	#set the variable
 	my $var='datasources/'.$dsName.'/attr/'.$attr;
 	$self->{zconf}->setVar($self->{zconfconfig}, $var, $value);
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf setVar failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
 	#saves it
 	$self->{zconf}->writeSetFromLoadedConfig({config=>$self->{zconfconfig}});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf writeSetFromHash failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -1166,11 +1103,9 @@ sub setDSpass{
 	my $self=$_[0];
 	my $dsName=$_[1];
 	my $pass=$_[2];
-	my $function='getDSpass';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -1178,7 +1113,7 @@ sub setDSpass{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
@@ -1186,43 +1121,43 @@ sub setDSpass{
 	if (!defined( $pass )) {
 		$self->{error}=11;
 		$self->{errorString}='No pass specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#make sure it does not exist already
 	my $dsExists=$self->dataSourceExists( $dsName );
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': dataSourceExists errored');
+	if ($self->error) {
+		$self->warnString('dataSourceExists errored');
 		return undef;
 	}
 	if (!$dsExists) {
 		$self->{error}=7;
 		$self->{errorString}='The data source "'.$dsName.'" does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	#set the variable
 	my $var='datasources/'.$dsName.'/pass';
 	$self->{zconf}->setVar($self->{zconfconfig}, $var, $pass);
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf setVar failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+			$self->{zconf}->error.'", errorString="'.
+			$self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
 	#saves it
 	$self->{zconf}->writeSetFromLoadedConfig({config=>$self->{zconfconfig}});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf writeSetFromHash failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
@@ -1247,11 +1182,9 @@ sub setDSuser{
 	my $self=$_[0];
 	my $dsName=$_[1];
 	my $user=$_[2];
-	my $function='getDSuser';
 
-	$self->errorblank;
-	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': A permanent error is set. error="'.$self->{error}.'" errorString="'.$self->{errorString}.'"');
+	#blanks any previous errors
+	if (!$self->errorblank) {
 		return undef;
 	}
 
@@ -1259,78 +1192,53 @@ sub setDSuser{
 	if (!defined( $dsName )) {
 		$self->{error}=2;
 		$self->{errorString}='No DS name specified';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;		
 	}
 
 	#make sure it does not exist already
 	my $dsExists=$self->dataSourceExists( $dsName );
 	if ($self->{error}) {
-		warn($self->{module}.' '.$function.': dataSourceExists errored');
+		$self->warnString('dataSourceExists errored');
 		return undef;
 	}
 	if (!$dsExists) {
 		$self->{error}=7;
 		$self->{errorString}='The data source "'.$dsName.'" does not exist';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		$self->warn;
 		return undef;
 	}
 
 	#set the variable
 	my $var='datasources/'.$dsName.'/user';
 	$self->{zconf}->setVar($self->{zconfconfig}, $var, $user);
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf setVar failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return undef;
 	}
 
 	#saves it
 	$self->{zconf}->writeSetFromLoadedConfig({config=>$self->{zconfconfig}});
-	if ($self->{zconf}->{error}) {
+	if ($self->{zconf}->error) {
 		$self->{error}=1;
 		$self->{errorString}='ZConf writeSetFromHash failed. error="'.
-		                     $self->{zconf}->{error}.'", errorString="'.
-		                     $self->{zconf}->{errorString}.'"';
-		warn($self->{module}.' '.$function.':'.$self->{error}.': '.$self->{errorString});
+		                     $self->{zconf}->error.'", errorString="'.
+		                     $self->{zconf}->errorString.'"';
+		$self->warn;
 		return $self;
 	}
 
 	return 1;
 }
 
-=head2 errorblank
+=head1 ERROR CODES/HANDLING
 
-This blanks the error storage and is only meant for internal usage.
-
-It does the following.
-
-    $self->{error}=undef;
-    $self->{errorString}="";
-
-=cut
-
-#blanks the error flags
-sub errorblank{
-	my $self=$_[0];
-
-	if ($self->{perror}) {
-		warn('ZConf-DevTemplate errorblank: A permanent error is set');
-		return undef;
-	}
-
-	$self->{error}=undef;
-	$self->{errorString}="";
-	
-	return 1;
-}
-
-=head1 ERROR CODES
-
-To fetch the error code, use the method 'error'.
+Error handling is provided by L<Error::Helper>. The error
+codes are as below.
 
 =head2 1
 
@@ -1402,7 +1310,7 @@ This contains any attributes for a data source.
 
 =head1 AUTHOR
 
-Zane C. Bowers, C<< <vvelox at vvelox.net> >>
+Zane C. Bowers-Hadley, C<< <vvelox at vvelox.net> >>
 
 =head1 BUGS
 
@@ -1445,7 +1353,7 @@ L<http://search.cpan.org/dist/ZConf-DBI/>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2009 Zane C. Bowers, all rights reserved.
+Copyright 2012 Zane C. Bowers-Hadley, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

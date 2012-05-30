@@ -19,6 +19,7 @@ WriteMakefile(
 							'DBI::Shell' => 0,
 							'Getopt::Std' => 0,
 							'Term::ReadKey'=>0,
+							'Error::Helper'=>0,
 							},
 			  dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
 			  clean               => { FILES => 'ZConf-DBI-*' },
